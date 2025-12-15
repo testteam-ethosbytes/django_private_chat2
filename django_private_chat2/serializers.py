@@ -12,9 +12,9 @@ def serialize_message_model(m: MessageModel, user_id):
     sender_pk = m.sender.pk
     is_out = sender_pk == user_id
     files = None
-    if m.file is not None:
+    if m.file.exists():
         files = []
-        for file in m.file:
+        for file in m.file.all():
             file = serialize_file_model(file)
             files.append(file)
     # TODO: add forwards

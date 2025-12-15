@@ -64,6 +64,7 @@ class OutgoingEventNewTextMessage(NamedTuple):
     sender: str
     receiver: str
     sender_username: str
+    files: list | None
     type: str = "new_text_message"
 
     def to_json(self) -> str:
@@ -71,6 +72,7 @@ class OutgoingEventNewTextMessage(NamedTuple):
             "msg_type": MessageTypes.TextMessage,
             "random_id": self.random_id,
             "text": self.text,
+            "files": self.files,
             "sender": self.sender,
             "receiver": self.receiver,
             "sender_username": self.sender_username,
@@ -79,7 +81,7 @@ class OutgoingEventNewTextMessage(NamedTuple):
 
 class OutgoingEventNewFileMessage(NamedTuple):
     db_id: int
-    file: Dict[str, str]
+    files: list[Dict[str, str]]
     sender: str
     receiver: str
     sender_username: str
@@ -89,7 +91,7 @@ class OutgoingEventNewFileMessage(NamedTuple):
         return json.dumps({
             "msg_type": MessageTypes.FileMessage,
             "db_id": self.db_id,
-            "file": self.file,
+            "files": self.files,
             "sender": self.sender,
             "receiver": self.receiver,
             "sender_username": self.sender_username,

@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
 from django.db import models
+from django.db.models.signals import pre_delete
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from django.utils.timezone import localtime
-from model_utils.models import TimeStampedModel, SoftDeletableModel, SoftDeletableManager
+from model_utils.models import TimeStampedModel, SoftDeletableModel
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth import get_user_model
 from typing import Optional, Any
 from django.db.models import Q
+from django.dispatch import receiver
 import uuid
 
 UserModel: AbstractBaseUser = get_user_model()
@@ -67,8 +68,7 @@ class MessageModel(TimeStampedModel, SoftDeletableModel):
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_("Recipient"),
                                   related_name='to_user', db_index=True)
     text = models.TextField(verbose_name=_("Text"), blank=True)
-    file = models.ForeignKey(UploadedFile, related_name='message', on_delete=models.DO_NOTHING,
-                             verbose_name=_("File"), blank=True, null=True)
+    file = models.ManyToManyField(UploadedFile, related_name='message', verbose_name=_("File"), blank=True)
 
     read = models.BooleanField(verbose_name=_("Read"), default=False)
     all_objects = models.Manager()
@@ -94,6 +94,14 @@ class MessageModel(TimeStampedModel, SoftDeletableModel):
         ordering = ('-created',)
         verbose_name = _("Message")
         verbose_name_plural = _("Messages")
+
+
+@receiver(pre_delete, sender=MessageModel)
+def delete_message_files(sender, instance, **kwargs):
+    for uploaded_file in instance.file.all():
+        if uploaded_file.file:
+            uploaded_file.file.delete(save=False)
+        uploaded_file.delete()
 
 # TODO:
 # Possible features - update with pts

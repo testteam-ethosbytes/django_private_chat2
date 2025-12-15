@@ -11,15 +11,22 @@ def serialize_file_model(m: UploadedFile) -> Dict[str, str]:
 def serialize_message_model(m: MessageModel, user_id):
     sender_pk = m.sender.pk
     is_out = sender_pk == user_id
+    files = None
+    if m.file is not None:
+        files = []
+        for file in m.file:
+            file = serialize_file_model(file)
+            files.append(file)
     # TODO: add forwards
     # TODO: add replies
+
     obj = {
         "id": m.id,
         "text": m.text,
         "sent": int(m.created.timestamp()),
         "edited": int(m.modified.timestamp()),
         "read": m.read,
-        "file": serialize_file_model(m.file) if m.file else None,
+        "files": files,
         "sender": str(sender_pk),
         "recipient": str(m.recipient.pk),
         "out": is_out,

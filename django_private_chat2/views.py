@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from django.views.generic import (
     CreateView,
-    DeleteView,
+    # DeleteView,
     DetailView,
-    UpdateView,
+    # UpdateView,
     ListView,
 
 )
@@ -17,12 +17,18 @@ from django.db.models import Q
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, HttpResponseBadRequest
+from django.http import (
+    # HttpResponse,
+    JsonResponse,
+    # HttpResponseRedirect,
+    HttpResponseBadRequest
+)
 from django.core.paginator import Page, Paginator
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
-from django.urls import reverse_lazy
 from django.forms import ModelForm
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 import json
 
 
@@ -107,7 +113,8 @@ class UploadForm(ModelForm):
     #     content = self.cleaned_data["file"]
     #     content_type = content.content_type.split('/')[0]
     #     if (content._size > MAX_UPLOAD_SIZE):
-    #         raise forms.ValidationError(_("Please keep file size under %s. Current file size %s")%(filesizeformat(MAX_UPLOAD_SIZE), filesizeformat(content._size)))
+    #         raise forms.ValidationError(_("Please keep file size under %s. Current file size %s")% \
+    #           (filesizeformat(MAX_UPLOAD_SIZE), filesizeformat(content._size)))
     #     return content
     #
     # def clean(self):
@@ -117,6 +124,7 @@ class UploadForm(ModelForm):
         fields = ['file']
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class UploadView(LoginRequiredMixin, CreateView):
     http_method_names = ['post', ]
     model = UploadedFile

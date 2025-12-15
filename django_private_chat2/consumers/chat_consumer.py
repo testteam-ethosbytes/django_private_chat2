@@ -223,6 +223,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     socket_files = None
                     if file_ids is not None:
                         files = []
+                        socket_files = []
                         for file_id in file_ids:
                             file: Optional[UploadedFile] = await get_file_by_id(file_id)
                             logger.info(f"DB check if file {file_id} exists resulted in {file}")

@@ -20,6 +20,7 @@ logger = logging.getLogger('django_private_chat2.chat_consumer')
 TEXT_MAX_LENGTH = getattr(settings, 'TEXT_MAX_LENGTH', 65535)
 UNAUTH_REJECT_CODE: int = 4001
 
+
 class ChatConsumer(AsyncWebsocketConsumer):
     async def _after_message_save(self, msg: MessageModel, rid: int, user_pk: str):
         ev = OutgoingEventMessageIdCreated(random_id=rid, db_id=msg.id)._asdict()
@@ -131,6 +132,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
                 return None
             elif msg_type == MessageTypes.FileMessage:
+                # FileMessage now accepts multiple file_ids
                 data: MessageTypeFileMessage
                 if 'file_ids' not in data:
                     return ErrorTypes.MessageParsingError, "'file_ids' not present in data"
@@ -152,9 +154,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     file_ids = data['file_ids']
                     user_pk = data['user_pk']
                     rid = data['random_id']
+
                     # We can't send the message right away like in the case with text message
                     # because we don't have the file url.
-
+                    # Two arrays are to be utilized where:
+                    #   : One is for syncing the files into DB
+                    #   : The other is for the channel layer, containing serialized_files
                     files = []
                     socket_files = []
                     for file_id in file_ids:
@@ -182,9 +187,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                                                                                         sender=self.group_name,
                                                                                         receiver=user_pk,
                                                                                         sender_username=self.sender_username)._asdict())
-
             elif msg_type == MessageTypes.TextMessage:
-                # Combine File Message in the textMessage instead,
+                # TextMessage now can also accepts multiple files
                 data: MessageTypeTextMessage
                 if 'text' not in data:
                     return ErrorTypes.MessageParsingError, "'text' not present in data"
@@ -211,14 +215,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     file_ids = data['file_ids'] if 'file_ids' in data else None
                     user_pk = data['user_pk']
                     rid = data['random_id']
-                    # first we send data to channel layer to not perform any synchronous operations,
-                    # and only after we do sync DB stuff
-                    # We need to create a 'random id' - a temporary id for the message, which is not yet
-                    # saved to the database. I.e. for the client it is 'pending delivery' and can be
-                    # considered delivered only when it's saved to database and received a proper id,
-                    # which is then broadcast separately both to sender & receiver.
 
-                    # IF there's a file, we can't send the message right away because we don't have the file url.
+                    # If there's a file, perform the same operation as FileMessage to get the file id and serialize it.
                     files = None
                     socket_files = None
                     if file_ids is not None:
@@ -232,8 +230,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             else:
                                 serialized_file = serialize_file_model(file)
                                 files.append(file)
-                                socket_files = None.append(serialized_file)
+                                socket_files.append(serialized_file)
 
+                    # first we send data to channel layer to not perform any synchronous operations,
+                    # and only after we do sync DB stuff
+                    # We need to create a 'random id' - a temporary id for the message, which is not yet
+                    # saved to the database. I.e. for the client it is 'pending delivery' and can be
+                    # considered delivered only when it's saved to database and received a proper id,
+                    # which is then broadcast separately both to sender & receiver.
                     logger.info(f"Validation passed, sending text message from {self.group_name} to {user_pk}")
                     await self.channel_layer.group_send(user_pk, OutgoingEventNewTextMessage(random_id=rid,
                                                                                              text=text,

@@ -52,9 +52,12 @@ def get_unread_count(sender, recipient) -> Awaitable[int]:
 def save_text_message(text: str, files: Optional[list[UploadedFile]], from_: AbstractBaseUser, to: AbstractBaseUser) -> Awaitable[MessageModel]:
     message = MessageModel.objects.create(text=text, sender=from_, recipient=to)
 
-    if files:
+    if files is not None:
         message.file.set(files)
-    return message
+        message.save()
+        return message
+    else:
+        return message
 
 
 @database_sync_to_async

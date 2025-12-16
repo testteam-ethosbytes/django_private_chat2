@@ -55,7 +55,9 @@ def save_text_message(text: str, files: Optional[list[UploadedFile]], from_: Abs
     if files is not None:
         message.file.set(files)
         message.save()
-    return message
+        return message
+    else:
+        return message
 
 
 @database_sync_to_async

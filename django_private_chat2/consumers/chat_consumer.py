@@ -230,7 +230,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             else:
                                 serialized_file = serialize_file_model(file)
                                 files.append(file)
-                                socket_files = None.append(serialized_file)
+                                socket_files.append(serialized_file)
 
                     # first we send data to channel layer to not perform any synchronous operations,
                     # and only after we do sync DB stuff

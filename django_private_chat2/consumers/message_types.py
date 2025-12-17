@@ -90,7 +90,7 @@ class OutgoingEventNewFileMessage(NamedTuple):
     def to_json(self) -> str:
         return json.dumps({
             "msg_type": MessageTypes.FileMessage,
-            "db_id": self.db_id,
+            "id": self.db_id,
             "files": self.files,
             "sender": self.sender,
             "receiver": self.receiver,

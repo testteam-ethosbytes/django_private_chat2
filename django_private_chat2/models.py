@@ -78,6 +78,10 @@ class MessageModel(TimeStampedModel, SoftDeletableModel):
         return MessageModel.objects.filter(sender_id=sender, recipient_id=recipient, read=False).count()
 
     @staticmethod
+    def get_unread_messages_for_dialog_with_user(sender, recipient):
+        return MessageModel.objects.filter(sender_id=sender, recipient_id=recipient, read=False)
+
+    @staticmethod
     def get_last_message_for_dialog(sender, recipient):
         return MessageModel.objects.filter(
             Q(sender_id=sender, recipient_id=recipient) | Q(sender_id=recipient, recipient_id=sender)) \

@@ -21,6 +21,11 @@ class MessageTypeMessageRead(TypedDict):
     message_id: int
 
 
+class MessageTypeDialogRead(TypedDict):
+    user_pk: str
+    dialog_id: int
+
+
 class MessageTypeFileMessage(TypedDict):
     file_id: str
     user_pk: str
@@ -34,10 +39,11 @@ class MessageTypes(enum.IntEnum):
     FileMessage = 4
     IsTyping = 5
     MessageRead = 6
-    ErrorOccurred = 7
-    MessageIdCreated = 8
-    NewUnreadCount = 9
-    TypingStopped = 10
+    DialogRead = 7
+    ErrorOccurred = 8
+    MessageIdCreated = 9
+    NewUnreadCount = 10
+    TypingStopped = 11
 
 
 # class OutgoingEventBase(TypedDict):
@@ -53,6 +59,21 @@ class OutgoingEventMessageRead(NamedTuple):
         return json.dumps({
             "msg_type": MessageTypes.MessageRead,
             "message_id": self.message_id,
+            "sender": self.sender,
+            "receiver": self.receiver
+        })
+
+
+class OutgoingEventDialogRead(NamedTuple):
+    dialog_id: int
+    sender: str
+    receiver: str
+    type: str = "dialog_read"
+
+    def to_json(self) -> str:
+        return json.dumps({
+            "msg_type": MessageTypes.DialogRead,
+            "dialog_id": self.dialog_id,
             "sender": self.sender,
             "receiver": self.receiver
         })

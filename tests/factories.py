@@ -53,5 +53,5 @@ class MessageModelFactory(DjangoModelFactory):
     sender = Iterator(User.objects.all())
     recipient = Iterator(User.objects.all())
     text = LazyAttribute(lambda x: faker.paragraph(nb_sentences=3, variable_nb_sentences=True))
-    file = LazyAttribute(lambda x: None)
+    # file = LazyAttribute(lambda x: None)
     read = Iterator([True, False])

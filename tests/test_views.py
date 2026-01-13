@@ -13,7 +13,6 @@ from .factories import DialogsModelFactory, MessageModelFactory, UserFactory, fa
 # /messages/<dialog_with>/        django_private_chat2.views.MessagesModelList    django_private_chat2:messages_list
 # /self/  django_private_chat2.views.SelfInfoView django_private_chat2:self_info
 
-
 class ViewsTests(TestCase):
 
     def setUp(self):

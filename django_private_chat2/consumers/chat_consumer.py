@@ -166,7 +166,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         elif dialog_res[0] not in users or dialog_res[1] not in users:
                             return ErrorTypes.InvalidDialogReadId, f"Dialog with id {did} does not belong to {user_pk} and self"
                         else:
-                            await mark_dialog_as_read(sender_pk=user_pk, recipient_pk=self.group_name)
+                            await mark_dialog_as_read(sender=user_pk, recipient=self.group_name)
                             new_unreads = await get_unread_count(user_pk, self.group_name)
                             await self.channel_layer.group_send(self.group_name,
                                                                 OutgoingEventNewUnreadCount(sender=user_pk,

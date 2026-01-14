@@ -13,7 +13,7 @@ class SerializerTests(TestCase):
         self.message = MessageModel.objects.create(sender=self.sender, recipient=self.recipient,
                                                    text="testText", read=True)
         self.dialog = DialogsModel.objects.filter(user1=self.sender, user2=self.recipient).first()
-        self.file = UploadedFile.objects.create(uploaded_by=self.sender, file="LICENSE")
+        self.file = UploadedFile.objects.create(uploaded_by=self.sender, file="example.txt")
 
     def test_serialize_file_model(self):
         serialized = serialize_file_model(self.file)
@@ -21,12 +21,14 @@ class SerializerTests(TestCase):
             "id": str(self.file.id),
             "url": self.file.file.url,
             "size": self.file.file.size,
-            "name": "LICENSE"
+            "name": "example.txt"
         }
         self.assertEqual(serialized, o)
 
     def test_serialize_message_with_file(self):
-        msg = MessageModel.objects.create(sender=self.sender, recipient=self.recipient, file=self.file, read=True)
+        msg = MessageModel.objects.create(sender=self.sender, recipient=self.recipient, read=True)
+        msg.file.set([self.file])
+        msg.save()
         serialized = serialize_message_model(msg, self.sender.pk)
         o = {
             "id": msg.id,
@@ -34,7 +36,7 @@ class SerializerTests(TestCase):
             "sent": int(msg.created.timestamp()),
             "edited": int(msg.modified.timestamp()),
             "read": True,
-            "file": serialize_file_model(self.file),
+            "files": [serialize_file_model(self.file)],
             "sender": str(self.sender.pk),
             "recipient": str(self.recipient.pk),
             "out": True,
@@ -50,7 +52,7 @@ class SerializerTests(TestCase):
             "sent": int(self.message.created.timestamp()),
             "edited": int(self.message.modified.timestamp()),
             "read": True,
-            "file": None,
+            "files": None,
             "sender": str(self.sender.pk),
             "recipient": str(self.recipient.pk),
             "out": True,

@@ -34,6 +34,15 @@ def get_message_by_id(mid: int) -> Awaitable[Optional[Tuple[str, str]]]:
         return None
 
 
+@database_sync_to_async
+def get_dialog_by_id(did: int) -> Awaitable[Optional[Tuple[str, str]]]:
+    dialog: Optional[DialogsModel] = DialogsModel.objects.filter(id=did).first()
+    if dialog:
+        return str(dialog.user1.pk), str(dialog.user2.pk)
+    else:
+        return None
+
+
 # @database_sync_to_async
 # def mark_message_as_read(mid: int, sender_pk: str, recipient_pk: str):
 #     return MessageModel.objects.filter(id__lte=mid,sender_id=sender_pk, recipient_id=recipient_pk).update(read=True)
@@ -41,6 +50,12 @@ def get_message_by_id(mid: int) -> Awaitable[Optional[Tuple[str, str]]]:
 @database_sync_to_async
 def mark_message_as_read(mid: int) -> Awaitable[None]:
     return MessageModel.objects.filter(id=mid).update(read=True)
+
+
+@database_sync_to_async
+def mark_dialog_as_read(sender, recipient) -> Awaitable[None]:
+    unread_messages = MessageModel.get_unread_messages_for_dialog_with_user(sender, recipient)
+    return unread_messages.update(read=True)
 
 
 @database_sync_to_async

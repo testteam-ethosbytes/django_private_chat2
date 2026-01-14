@@ -59,6 +59,14 @@ class MessageAndDialogModelTests(TestCase):
 
         self.assertEqual(MessageModel.get_unread_count_for_dialog_with_user(sender, recipient), num_unread)
 
+    # get_unread_messages_for_dialog_with_user
+    def test_get_unread_messages_for_dialog_with_user(self):
+        sender, recipient = UserFactory.create(), UserFactory.create()
+        num_unread = faker.random.randint(1, 20)
+        messages = MessageModelFactory.create_batch(num_unread, read=False, sender=sender, recipient=recipient)
+        query = list(MessageModel.get_unread_messages_for_dialog_with_user(sender, recipient))
+        self.assertEqual(set(query), set(messages))
+
     def test_get_last_message_for_dialog(self):
         sender, recipient = UserFactory.create(), UserFactory.create()
         last_message = MessageModelFactory.create(sender=sender, recipient=recipient)
@@ -160,5 +168,5 @@ class TestCaseMessageModelGenerated(TestCase):
         self.assertIsNotNone(message_model.sender)
         self.assertIsNotNone(message_model.recipient)
         self.assertIsNotNone(message_model.text)
-        self.assertIsNone(message_model.file)
+        self.assertIsNotNone(message_model.file)
         self.assertIsNotNone(message_model.read)

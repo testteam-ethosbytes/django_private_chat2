@@ -5,9 +5,9 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.contrib.auth.models import AbstractBaseUser
 
 from .db_operations import get_groups_to_add, get_unread_count, get_user_by_pk, get_file_by_id, get_message_by_id, \
-    save_files_message, save_text_message, mark_message_as_read
-from .message_types import MessageTypes, MessageTypeMessageRead, MessageTypeFileMessage, MessageTypeTextMessage, \
-    OutgoingEventMessageRead, OutgoingEventNewTextMessage, OutgoingEventNewUnreadCount, OutgoingEventMessageIdCreated,\
+    get_dialog_by_id, save_files_message, save_text_message, mark_message_as_read, mark_dialog_as_read
+from .message_types import MessageTypes, MessageTypeMessageRead, MessageTypeDialogRead, MessageTypeFileMessage, MessageTypeTextMessage, \
+    OutgoingEventMessageRead, OutgoingEventDialogRead, OutgoingEventNewTextMessage, OutgoingEventNewUnreadCount, OutgoingEventMessageIdCreated,\
     OutgoingEventNewFileMessage, OutgoingEventIsTyping, OutgoingEventStoppedTyping, OutgoingEventWentOnline, OutgoingEventWentOffline
 
 from .errors import ErrorTypes, ErrorDescription
@@ -130,6 +130,47 @@ class ChatConsumer(AsyncWebsocketConsumer):
                                                                                             unread_count=new_unreads)._asdict())
                             # await mark_message_as_read(mid, sender_pk=user_pk, recipient_pk=self.group_name)
 
+                return None
+            elif msg_type == MessageTypes.DialogRead:
+                data: MessageTypeDialogRead
+                if 'user_pk' not in data:
+                    return ErrorTypes.MessageParsingError, "'user_pk' not present in data"
+                elif 'dialog_id' not in data:
+                    return ErrorTypes.MessageParsingError, "'dialog_id' not present in data"
+                elif not isinstance(data['user_pk'], str):
+                    return ErrorTypes.InvalidUserPk, "'user_pk' should be a string"
+                elif not isinstance(data['dialog_id'], int):
+                    return ErrorTypes.InvalidRandomId, "'dialog_id' should be an int"
+                elif data['dialog_id'] <= 0:
+                    return ErrorTypes.InvalidDialogReadId, "'dialog_id' should be > 0"
+                elif data['user_pk'] == self.group_name:
+                    return ErrorTypes.InvalidUserPk, "'user_pk' can't be self  (you can't mark self messages as read)"
+                else:
+                    user_pk = data['user_pk']
+                    did = data['dialog_id']
+                    logger.info(
+                        f"Validation passed, marking all messages from {user_pk} to {self.group_name} on dialog id {did} as read")
+
+                    await self.channel_layer.group_send(user_pk,
+                                                        OutgoingEventDialogRead(dialog_id=did, sender=user_pk,
+                                                                                receiver=self.group_name)._asdict())
+                    recipient: Optional[AbstractBaseUser] = await get_user_by_pk(user_pk)
+                    logger.info(f"DB check if user {user_pk} exists resulted in {recipient}")
+                    if not recipient:
+                        return ErrorTypes.InvalidUserPk, f"User with pk {user_pk} does not exist"
+                    else:
+                        dialog_res: Optional[Tuple[str, str]] = await get_dialog_by_id(did)
+                        users = [self.group_name, user_pk]
+                        if not dialog_res:
+                            return ErrorTypes.InvalidDialogReadId, f"Dialog with id {did} does not exist"
+                        elif dialog_res[0] not in users or dialog_res[1] not in users:
+                            return ErrorTypes.InvalidDialogReadId, f"Dialog with id {did} does not belong to {user_pk} and self"
+                        else:
+                            await mark_dialog_as_read(sender=user_pk, recipient=self.group_name)
+                            new_unreads = await get_unread_count(user_pk, self.group_name)
+                            await self.channel_layer.group_send(self.group_name,
+                                                                OutgoingEventNewUnreadCount(sender=user_pk,
+                                                                                            unread_count=new_unreads)._asdict())
                 return None
             elif msg_type == MessageTypes.FileMessage:
                 # FileMessage now accepts multiple file_ids

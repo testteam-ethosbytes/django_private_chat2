@@ -168,3 +168,6 @@ LOGGING = {
     #     'level': 'INFO',
     # },
 }
+
+DIALOGS_PAGINATION = 50
+MESSAGES_PAGINATION = 250

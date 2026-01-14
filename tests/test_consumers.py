@@ -14,7 +14,8 @@ from channels.db import database_sync_to_async
 
 from django_private_chat2.consumers import ChatConsumer
 from django_private_chat2.consumers.db_operations import  get_groups_to_add, get_user_by_pk, get_file_by_id, \
-    get_message_by_id, get_unread_count, mark_message_as_read, save_file_message, save_text_message
+    get_message_by_id, get_dialog_by_id, get_unread_count, mark_message_as_read, mark_dialog_as_read, \
+    save_text_message, save_files_message
 
 
 class ConsumerTests(TestCase):
@@ -24,6 +25,8 @@ class ConsumerTests(TestCase):
         self.file: UploadedFile = UploadedFile.objects.create(uploaded_by=self.u1, file="LICENSE")
         self.msg: MessageModel = MessageModelFactory.create(sender=self.u1, recipient=self.u2)
         self.unread_msg: MessageModel = MessageModelFactory.create(sender=self.u1, recipient=self.u2, read=False)
+        self.unread_msg2: MessageModel = MessageModelFactory.create(sender=self.u1, recipient=self.u2, read=False)
+        self.unread_msg3: MessageModel = MessageModelFactory.create(sender=self.u1, recipient=self.u2, read=False)
 
         self.sender, self.recipient = UserFactory.create(), UserFactory.create()
         num_unread = faker.random.randint(1, 20)
@@ -55,20 +58,36 @@ class ConsumerTests(TestCase):
         t = (str(self.u2.pk), str(self.u1.pk))
         self.assertEqual(m, t)
 
+    async def test_get_dialog_by_id(self):
+        d = await get_dialog_by_id(999999)
+        self.assertIsNone(d)
+        d = await get_dialog_by_id(self.dialog.id)
+        t = (str(self.u1.pk), str(self.u2.pk))
+        self.assertEqual(d, t)
+
     async def test_mark_message_as_read(self):
         self.assertFalse(self.unread_msg.read)
         await mark_message_as_read(self.unread_msg.id)
         await database_sync_to_async(self.unread_msg.refresh_from_db)()
         self.assertTrue(self.unread_msg.read)
 
+    async def test_mark_dialog_as_read(self):
+        self.assertFalse(self.unread_msg2.read)
+        self.assertFalse(self.unread_msg3.read)
+        await mark_dialog_as_read(sender=self.u1, recipient=self.u2)
+        await database_sync_to_async(self.unread_msg2.refresh_from_db)()
+        await database_sync_to_async(self.unread_msg3.refresh_from_db)()
+        self.assertTrue(self.unread_msg2.read)
+        self.assertTrue(self.unread_msg3.read)
+
     async def test_get_unread_count(self):
         count = await get_unread_count(self.sender, self.recipient)
         self.assertEqual(count, self.num_unread)
 
     async def test_save_x_message(self):
-        msg = await save_text_message(text="text", from_=self.u1, to=self.u2)
+        msg = await save_text_message(text="text", files=None, from_=self.u1, to=self.u2)
         self.assertIsNotNone(msg)
-        msg2 = await save_file_message(file=self.file, from_=self.u1, to=self.u2)
+        msg2 = await save_files_message(file=[self.file], from_=self.u1, to=self.u2)
         self.assertIsNotNone(msg2)
 
     async def test_connect_basic(self):

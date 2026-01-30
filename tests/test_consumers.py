@@ -91,7 +91,7 @@ class ConsumerTests(TestCase):
         self.assertIsNotNone(msg2)
 
     async def test_connect_basic(self):
-        communicator = WebsocketCommunicator(ChatConsumer.as_asgi(), "/chat_ws")
+        communicator = WebsocketCommunicator(ChatConsumer.as_asgi(), "/ws/chat")
         communicator.scope["user"] = self.u1
         connected, subprotocol = await communicator.connect()
         assert connected

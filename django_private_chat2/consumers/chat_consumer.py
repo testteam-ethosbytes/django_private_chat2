@@ -42,7 +42,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.sender_username: str = self.user.get_username()
             logger.info(f"User {self.user.pk} connected, adding {self.channel_name} to {self.group_name}")
             await self.channel_layer.group_add(self.group_name, self.channel_name)
-            await self.accept()
+
+            subprotocols = self.scope.get("subprotocols", [])
+            if subprotocols:
+                await self.accept(subprotocol=subprotocols[0])
+            else:
+                await self.accept()
             dialogs = await get_groups_to_add(self.user)
             logger.info(f"User {self.user.pk} connected, sending 'user_went_online' to {dialogs} dialog groups")
             for d in dialogs:  # type: int
